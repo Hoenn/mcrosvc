@@ -6,3 +6,30 @@ message User {
     int32 age =2;
     int32 user_num=3;
 }
+
+message CreateUserRequest {
+    User user=1;
+}
+message CreateUserResponse {
+    User user=1;
+}
+
+message GetUserRequest {
+    int32 user_num=1;
+}
+
+message GetUserResponse {
+    User user=1;
+}
+
+message DeleteUserRequest {
+    int32 user_num=1;
+}
+
+message DeleteUserResponse {}
+
+service UDBAPI {
+    rpc GetUser (GetUserRequest) returns (GetUserResponse);
+    rpc CreateUser (CreateUserRequest) returns (CreateUserResponse);
+    rpc DeleteUser (DeleteUserRequest) returns (DeleteUserResponse);
+}

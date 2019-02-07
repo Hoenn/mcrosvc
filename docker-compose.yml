@@ -1,0 +1,34 @@
+version: '3.3'
+services:
+  db:
+    image: mysql:5.7
+    environment:
+      MYSQL_DATABASE: 'usersdb'
+      MYSQL_USER: 'udb'
+      MYSQL_PASSWORD: 'sekret'
+      MYSQL_ROOT_PASSWORD: 'sekret'
+    command: --init-file /data/app/init.sql
+    volumes:
+      - ./udb/structure.sql:/data/app/init.sql
+    ports:
+      - '3306:3306'
+    expose:
+      - '3306'
+
+  udb:
+    image: golang:latest
+    entrypoint: /bin/wait-for-it.sh db:3306 -- /bin/udb-server
+    environment:
+      DB_PASSWORD: 'sekret'
+      DB_USER: 'udb'
+      DB_NAME: 'usersdb'
+      DB_ADDRESS: 'db:3306'
+      GRPC_PORT: '50052'
+    expose:
+      - '50052'
+    volumes:
+      - ./udb/target/udb-server:/bin/udb-server
+      - ./common/wait-for-it.sh:/bin/wait-for-it.sh
+    depends_on:
+      - db
+
