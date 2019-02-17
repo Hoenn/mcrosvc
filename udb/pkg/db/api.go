@@ -26,15 +26,16 @@ func (d *UserAPI) Close() error {
 }
 
 func (d *UserAPI) CreateUser(ctx context.Context, u *proto.User) (int64, error) {
+	tx, err := d.db.BeginTx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return -1, err
+	}
 	var id int64
-	_, err := WithAutomaticCommit(ctx, d.db, func(tx *sql.Tx) (sql.Result, error) {
-		res, err := createInsertUserQuery(u).RunWith(tx).ExecContext(ctx)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not insert user")
-		}
-		id, err = res.LastInsertId()
-		return nil, nil
-	})
+	res, err := createInsertUserQuery(u).RunWith(tx).ExecContext(ctx)
+	if err != nil {
+		return -1, errors.Wrap(err, "could not insert user")
+	}
+	id, err = res.LastInsertId()
 	if err != nil {
 		return -1, errors.Wrap(err, "could not get id from insert")
 	}
@@ -43,65 +44,34 @@ func (d *UserAPI) CreateUser(ctx context.Context, u *proto.User) (int64, error) 
 }
 
 func (d *UserAPI) DeleteUser(ctx context.Context, u int32) error {
-	_, err := WithAutomaticCommit(ctx, d.db, func(tx *sql.Tx) (sql.Result, error) {
-		_, err := createDeleteUserQuery(u).RunWith(tx).ExecContext(ctx)
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to delete user")
-		}
-		return nil, nil
-	})
+	tx, err := d.db.BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return err
+	}
+	_, err = createDeleteUserQuery(u).RunWith(tx).ExecContext(ctx)
+	if err == sql.ErrNoRows {
+		return nil
+	}
+	if err != nil {
+		return errors.Wrap(err, "unable to delete user")
 	}
 	return nil
 }
 
 func (d *UserAPI) GetUser(ctx context.Context, u int32) (*proto.User, error) {
 	var usr proto.User
-	_, err := WithAutomaticCommit(ctx, d.db, func(tx *sql.Tx) (sql.Result, error) {
-		row := createSelectUserQuery(u).RunWith(tx).QueryRowContext(ctx)
-		err := row.Scan(
-			&usr.UserNum,
-			&usr.Name,
-			&usr.Age,
-		)
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to scan user")
-		}
-		return nil, err
-	})
+	tx, err := d.db.BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return nil, err
+	}
+	row := createSelectUserQuery(u).RunWith(tx).QueryRowContext(ctx)
+	err = row.Scan(
+		&usr.UserNum,
+		&usr.Name,
+		&usr.Age,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to scan user")
 	}
 	return &usr, nil
-}
-
-// WithAutomaticCommit automatically commits after given func if no errors were returned.
-func WithAutomaticCommit(ctx context.Context, db *sql.DB, fn func(*sql.Tx) (sql.Result, error)) (sql.Result, error) {
-
-	if ctx.Err() != nil {
-		return nil, ctx.Err()
-	}
-	tx, err := db.BeginTx(ctx, &sql.TxOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	result, err := fn(tx)
-
-	if err != nil {
-
-		err2 := tx.Rollback()
-		if err2 != nil {
-		}
-	} else {
-		err2 := tx.Commit()
-		if err2 != nil {
-		}
-	}
-
-	return result, err
 }
