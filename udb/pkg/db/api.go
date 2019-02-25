@@ -39,6 +39,10 @@ func (d *UserAPI) CreateUser(ctx context.Context, u *proto.User) (int64, error) 
 	if err != nil {
 		return -1, errors.Wrap(err, "could not get id from insert")
 	}
+	err = tx.Commit()
+	if err != nil {
+		return -1, errors.Wrap(err, "could not user")
+	}
 
 	return id, err
 }
@@ -55,6 +59,11 @@ func (d *UserAPI) DeleteUser(ctx context.Context, u int32) error {
 	if err != nil {
 		return errors.Wrap(err, "unable to delete user")
 	}
+	err = tx.Commit()
+	if err != nil {
+		return errors.Wrap(err, "unable to delete user")
+	}
+
 	return nil
 }
 
@@ -70,6 +79,10 @@ func (d *UserAPI) GetUser(ctx context.Context, u int32) (*proto.User, error) {
 		&usr.Name,
 		&usr.Age,
 	)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to scan user")
+	}
+	err = tx.Commit()
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to scan user")
 	}
