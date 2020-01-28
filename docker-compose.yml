@@ -26,9 +26,19 @@ services:
       GRPC_PORT: '50052'
     expose:
       - '50052'
+    ports:
+      - '50052:50052'
     volumes:
       - ./udb/target/udb-server:/bin/udb-server
       - ./common/wait-for-it.sh:/bin/wait-for-it.sh
     depends_on:
       - db
 
+  web-api:
+    build: web-api
+    environment:
+      UDB_ADDRESS: 'udb:50052'
+    ports:
+      - '8080:8080'
+    depends_on:
+      - udb

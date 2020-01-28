@@ -40,11 +40,11 @@ func main() {
 	}
 
 	fmt.Println("Starting GRPC server")
-	go startGRPC(udb)
+	startGRPC(udb)
 }
 
 func startGRPC(udb *server.UDBServer) {
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%s", os.Getenv("GRPC_PORT")))
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", os.Getenv("GRPC_PORT")))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
